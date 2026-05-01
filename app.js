@@ -4,33 +4,29 @@
 const canvas = document.getElementById('cad-canvas');
 const ctx = canvas.getContext('2d');
 
-let cam = { x: 0, y: 0, zoom: 1 }; // Cámara (Pan/Zoom)
+// Estado de la Cámara (Pan y Zoom)
+let cam = { x: 0, y: 0, zoom: 1 };
 let entities = []; // Array de objetos del spool
 let currentTool = 'line';
 let isDrawing = false;
 let startWorldPos = null;
+let currentEndPos = { x: 0, y: 0 };
 
-// Configuración de Grilla y Snapping
-const MM_TO_PX = 0.12; // Factor base: 1mm = 0.12px lógicos
-let snapGridMM = 50;   // Snapping cada 50mm
+// Configuración de Grilla y Snapping (Milímetros a Píxeles lógicos)
+const MM_TO_PX = 0.12; 
+let snapGridMM = 50;   
 let primaryGridMM = 200;
 let secondaryGridMM = 50;
-
-// Registros de Service Worker
-// Asegúrate de que la ruta al service worker sea correcta
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/spoolcad-pwa/sw.js', {scope: '/spoolcad-pwa/'})
-    .then(reg => console.log('SW registrado', reg))
-    .catch(err => console.error('Error registro SW', err));
-}serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 
 // ==========================================
 // 2. SISTEMA DE COORDENADAS Y TRANSFORMACIÓN
 // ==========================================
 function resizeCanvas() {
-  canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
-  canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
   render();
 }
 
@@ -91,7 +87,7 @@ function addEntity(type, start, end, extraProps = {}) {
     type: type,
     coords_start: { ...start },
     coords_end: { ...end },
-    diameter_in: extraProps.diameter_in || 6, // Pulgadas por defecto
+    diameter_in: extraProps.diameter_in || 6, 
     material: extraProps.material || 'A106 Gr.B',
     auto_length_mm: length_mm,
     layer: extraProps.layer || 1
@@ -102,8 +98,8 @@ function addEntity(type, start, end, extraProps = {}) {
 // 5. BIBLIOTECA DE SIMBOLOGÍA (DRAWING)
 // ==========================================
 function drawPipeLine(ctx, sStart, sEnd, diameterIn) {
-  const width = (diameterIn * 10) * cam.zoom * MM_TO_PX; // Escala visual del diámetro
-  ctx.lineWidth = width;
+  const width = (diameterIn * 8) * cam.zoom * MM_TO_PX; // Escala visual del diámetro
+  ctx.lineWidth = Math.max(2, width); // Mínimo 2px para que sea visible
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#0f172a';
   ctx.beginPath();
@@ -113,7 +109,7 @@ function drawPipeLine(ctx, sStart, sEnd, diameterIn) {
 }
 
 function drawFitting(ctx, type, sPos, angle, diameterIn) {
-  const w = (diameterIn * 10) * cam.zoom * MM_TO_PX;
+  const w = Math.max(4, (diameterIn * 8) * cam.zoom * MM_TO_PX);
   ctx.save();
   ctx.translate(sPos.x, sPos.y);
   ctx.rotate(angle);
@@ -124,31 +120,54 @@ function drawFitting(ctx, type, sPos, angle, diameterIn) {
 
   switch(type) {
     case 'elbow90':
-      ctx.lineWidth = w; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(0, 0, w, -Math.PI/2, 0); ctx.stroke();
+      ctx.lineWidth = w; 
+      ctx.lineCap = 'round';
+      ctx.beginPath(); 
+      ctx.arc(0, 0, w, -Math.PI/2, 0); 
+      ctx.stroke();
       break;
     case 'elbow45':
-      ctx.lineWidth = w; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(0, 0, w*1.5, -Math.PI/4, 0); ctx.stroke();
+      ctx.lineWidth = w; 
+      ctx.lineCap = 'round';
+      ctx.beginPath(); 
+      ctx.arc(0, 0, w*1.5, -Math.PI/4, 0); 
+      ctx.stroke();
+      break;
+    case 'tee':
+      // Dibujar tubería principal (horizontal en rotación local)
+      ctx.lineWidth = w;
+      ctx.lineCap = 'butt';
+      ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(15, 0); ctx.stroke();
+      // Dibujar ramal (vertical hacia abajo)
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, w*2); ctx.stroke();
       break;
     case 'flange':
       const flangeW = w * 1.4;
       ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(-10, -flangeW/2); ctx.lineTo(-10, flangeW/2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(10, -flangeW/2); ctx.lineTo(10, flangeW/2); ctx.stroke();
+      ctx.lineCap = 'butt';
+      ctx.beginPath(); ctx.moveTo(-8, -flangeW/2); ctx.lineTo(-8, flangeW/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, -flangeW/2); ctx.lineTo(8, flangeW/2); ctx.stroke();
       break;
     case 'cap':
       ctx.lineWidth = w;
-      ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(5,0); ctx.stroke();
-      ctx.beginPath(); ctx.arc(5, 0, w/2, Math.PI/2, -Math.PI/2); ctx.fill(); ctx.stroke();
+      ctx.lineCap = 'butt';
+      ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(0,0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, w/2, Math.PI/2, -Math.PI/2, false); ctx.fill(); ctx.stroke();
       break;
     case 'red-conc':
-      ctx.beginPath(); ctx.moveTo(-15, w/2); ctx.lineTo(15, w/3); ctx.lineTo(15, -w/3); ctx.lineTo(-15, -w/2); ctx.closePath(); 
+      ctx.lineWidth = 2;
+      ctx.beginPath(); 
+      ctx.moveTo(-15, -w/2); ctx.lineTo(15, -w/3); 
+      ctx.lineTo(15, w/3); ctx.lineTo(-15, w/2); 
+      ctx.closePath(); 
       ctx.fill(); ctx.stroke();
       break;
     case 'red-exc':
-      ctx.beginPath(); ctx.moveTo(-15, w/2); ctx.lineTo(15, w/2); ctx.lineTo(15, -w/3); ctx.lineTo(-15, -w/2); ctx.closePath();
+      ctx.lineWidth = 2;
+      ctx.beginPath(); 
+      ctx.moveTo(-15, -w/2); ctx.lineTo(15, -w/2); // Base recta superior
+      ctx.lineTo(15, w/3); ctx.lineTo(-15, w/2);   // Base inclinada inferior
+      ctx.closePath();
       ctx.fill(); ctx.stroke();
       break;
   }
@@ -159,25 +178,27 @@ function drawFitting(ctx, type, sPos, angle, diameterIn) {
 // 6. MOTOR DE RENDERIZADO (GRILLA + ENTIDADES)
 // ==========================================
 function render() {
-  const w = canvas.width / window.devicePixelRatio;
-  const h = canvas.height / window.devicePixelRatio;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
   
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#f8fafc'; 
+  ctx.fillRect(0, 0, w, h);
 
   // -- Dibujar Grilla --
   drawGrid(w, h);
 
-  // -- Dibujar Entidades --
+  // -- Estados de Capas --
   const showPipe = document.getElementById('lay-pipe').checked;
   const showDim = document.getElementById('lay-dim').checked;
   
+  // -- Dibujar Entidades --
   if (showPipe) {
     entities.forEach(ent => {
       const sS = worldToScreen(ent.coords_start.x, ent.coords_start.y);
       const sE = worldToScreen(ent.coords_end.x, ent.coords_end.y);
       const angle = Math.atan2(sE.y - sS.y, sE.x - sS.x);
-      const dist = Math.hypot(sE.x - sS.x, sE.y - sS.y);
 
       if (ent.type === 'line') {
         drawPipeLine(ctx, sS, sE, ent.diameter_in);
@@ -214,7 +235,7 @@ function render() {
 function drawGrid(w, h) {
   // Grilla Secundaria (50mm)
   const stepSec = secondaryGridMM * cam.zoom * MM_TO_PX;
-  if (stepSec > 10) { // Evitar sobre-renderizado
+  if (stepSec > 10) { 
     ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 0.5;
     const offX = cam.x % stepSec; const offY = cam.y % stepSec;
     ctx.beginPath();
@@ -236,9 +257,6 @@ function drawGrid(w, h) {
 // ==========================================
 // 7. INTERACCIÓN Y EVENTOS (TÁCTIL Y RATÓN)
 // ==========================================
-let lastTouchDist = 0;
-let lastTouchCenter = {x:0, y:0};
-let currentEndPos = {x:0, y:0};
 
 // Gestión de Herramientas
 document.querySelectorAll('.tool-btn').forEach(btn => {
@@ -250,23 +268,26 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
 });
 
 canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
   const worldPos = screenToWorld(e.clientX, e.clientY);
   const snappedPos = snapToGrid(worldPos);
 
   if (currentTool === 'pan') {
-    isDrawing = true; startWorldPos = { x: e.clientX, y: e.clientY };
+    isDrawing = true; 
+    startWorldPos = { x: e.clientX, y: e.clientY };
   } else if (currentTool === 'line') {
     isDrawing = true;
     startWorldPos = snappedPos;
     currentEndPos = snappedPos;
   } else {
     // Insertar accesorio
-    addEntity(currentTool, snappedPos, { x: snappedPos.x + 100, y: snappedPos.y }, { layer: 1 });
+    addEntity(currentTool, snappedPos, { x: snappedPos.x + 200, y: snappedPos.y }, { layer: 1 });
     render();
   }
 });
 
 canvas.addEventListener('pointermove', (e) => {
+  e.preventDefault();
   if (!isDrawing) return;
   
   if (currentTool === 'pan') {
@@ -283,6 +304,7 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 canvas.addEventListener('pointerup', (e) => {
+  e.preventDefault();
   if (!isDrawing) return;
   isDrawing = false;
 
@@ -322,16 +344,21 @@ function exportPNG() {
   const tCtx = tempCanvas.getContext('2d');
   
   // Fondo blanco limpio para impresión
-  tCtx.fillStyle = '#FFFFFF'; tCtx.fillRect(0, 0, 1920, 1080);
+  tCtx.fillStyle = '#FFFFFF'; 
+  tCtx.fillRect(0, 0, 1920, 1080);
 
-  // Re-renderizar sin grilla
-  const origCtx = ctx;
-  // (Lógica simplificada: iterar entidades y dibujar en tCtx con escala fija)
+  // Re-renderizar sin grilla (Escala 1:1 fija para exportación)
+  const exportZoom = 2;
+  const exportOffsetX = 200;
+  const exportOffsetY = 200;
+
   entities.forEach(ent => {
-    tCtx.strokeStyle = '#000000'; tCtx.lineWidth = ent.diameter_in * 2;
+    tCtx.strokeStyle = '#000000'; 
+    tCtx.lineWidth = ent.diameter_in * 2;
+    tCtx.lineCap = 'round';
     tCtx.beginPath();
-    tCtx.moveTo(ent.coords_start.x * 2 + 200, ent.coords_start.y * 2 + 200);
-    tCtx.lineTo(ent.coords_end.x * 2 + 200, ent.coords_end.y * 2 + 200);
+    tCtx.moveTo(ent.coords_start.x * exportZoom + exportOffsetX, ent.coords_start.y * exportZoom + exportOffsetY);
+    tCtx.lineTo(ent.coords_end.x * exportZoom + exportOffsetX, ent.coords_end.y * exportZoom + exportOffsetY);
     tCtx.stroke();
   });
 
@@ -357,8 +384,21 @@ function toggleBOM() {
   document.getElementById('bom-body').innerHTML = html;
 }
 
-// Inicializar
+// ==========================================
+// 9. INICIALIZACIÓN Y SERVICE WORKER
+// ==========================================
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
-cam.zoom = 3; // Zoom inicial para ver la grilla
+
+// Centrar cámara al inicio
+cam.x = canvas.clientWidth / 2;
+cam.y = canvas.clientHeight / 2;
+cam.zoom = 3; 
 render();
+
+// Registro del Service Worker (Ruta relativa para GitHub Pages)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => console.log('Service Worker registrado correctamente'))
+    .catch(err => console.error('Error al registrar SW:', err));
+}

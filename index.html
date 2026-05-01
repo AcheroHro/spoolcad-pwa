@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SpoolCAD PWA</title>
+  <base href="/spoolcad-pwa/">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="cad-canvas"></canvas>
+    <div id="side-panel">
+      <div class="layer-toggle"><input type="checkbox" id="lay-pipe" checked> Cañería</div>
+      <div class="layer-toggle"><input type="checkbox" id="lay-dim" checked> Cotas</div>
+      <div class="layer-toggle"><input type="checkbox" id="lay-notes" checked> Notas</div>
+      <button class="tool-btn" onclick="exportPNG()" style="width:100%; margin-top:5px;">📷 Export PNG</button>
+      <button class="tool-btn" onclick="toggleBOM()" style="width:100%; margin-top:5px; background:#10b981;">📋 Materiales</button>
+    </div>
+    <div id="bom-modal">
+      <h3>Listado de Materiales</h3>
+      <table id="bom-table">
+        <thead><tr><th>Tipo</th><th>Diám (in)</th><th>Long (mm)</th><th>Mat</th></tr></thead>
+        <tbody id="bom-body"></tbody>
+      </table>
+      <button class="tool-btn" onclick="toggleBOM()" style="width:100%; margin-top:10px;">Cerrar</button>
+    </div>
+  </div>
+  <div id="toolbar">
+    <button class="tool-btn active" data-tool="line">✏️ Línea</button>
+    <button class="tool-btn" data-tool="elbow90">↱ Codo 90°</button>
+    <button class="tool-btn" data-tool="elbow45">⤴ Codo 45°</button>
+    <button class="tool-btn" data-tool="tee">├ Tee</button>
+    <button class="tool-btn" data-tool="cap">⏚ Casquete</button>
+    <button class="tool-btn" data-tool="red-conc">▽ Red.Conc</button>
+    <button class="tool-btn" data-tool="red-exc">⏛ Red.Exc</button>
+    <button class="tool-btn" data-tool="flange">║ Brida</button>
+    <button class="tool-btn" data-tool="pan">✋ Mover</button>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

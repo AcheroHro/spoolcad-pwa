@@ -3,41 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SpoolCAD PWA</title>
-  <base href="/spoolcad-pwa/">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="manifest" href="manifest.json">
+  <title>Achero_Spool</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="manifest" href="./manifest.json">
 </head>
 <body>
-  <div id="canvas-container">
-    <canvas id="cad-canvas"></canvas>
-    <div id="side-panel">
-      <div class="layer-toggle"><input type="checkbox" id="lay-pipe" checked> Cañería</div>
-      <div class="layer-toggle"><input type="checkbox" id="lay-dim" checked> Cotas</div>
-      <div class="layer-toggle"><input type="checkbox" id="lay-notes" checked> Notas</div>
-      <button class="tool-btn" onclick="exportPNG()" style="width:100%; margin-top:5px;">📷 Export PNG</button>
-      <button class="tool-btn" onclick="toggleBOM()" style="width:100%; margin-top:5px; background:#10b981;">📋 Materiales</button>
+
+  <!-- Barra Superior -->
+  <header id="top-bar">
+    <span class="project-name">Achero_Spool</span>
+    <div class="top-actions">
+      <button id="btn-save" class="top-btn">GUARDAR</button>
+      <button id="btn-bom" class="top-btn">MATERIALES</button>
+      <button id="btn-export" class="top-btn">EXPORTAR</button>
     </div>
-    <div id="bom-modal">
+  </header>
+
+  <!-- Área de Trabajo -->
+  <main id="workspace">
+    <canvas id="cad-canvas"></canvas>
+    
+    <!-- Panel Lateral Derecho -->
+    <aside id="right-toolbar">
+      <button class="tool-btn active" data-tool="pan">PUNTERO</button>
+      <button class="tool-btn" data-tool="line">CAÑERÍA</button>
+      
+      <div class="tool-group-title">ACCESORIOS</div>
+      <button class="tool-btn" data-tool="elbow90">Codo 90°</button>
+      <button class="tool-btn" data-tool="elbow45">Codo 45°</button>
+      <button class="tool-btn" data-tool="tee">Tee</button>
+      <button class="tool-btn" data-tool="cap">Casquete</button>
+      <button class="tool-btn" data-tool="red-conc">Red. Conc</button>
+      <button class="tool-btn" data-tool="red-exc">Red. Exc</button>
+      <button class="tool-btn" data-tool="flange">Brida</button>
+    </aside>
+  </main>
+
+  <!-- Modal de Materiales -->
+  <div id="bom-modal">
+    <div class="modal-content">
       <h3>Listado de Materiales</h3>
       <table id="bom-table">
-        <thead><tr><th>Tipo</th><th>Diám (in)</th><th>Long (mm)</th><th>Mat</th></tr></thead>
+        <thead><tr><th>#</th><th>Tipo</th><th>Diám</th><th>Long (mm)</th></tr></thead>
         <tbody id="bom-body"></tbody>
       </table>
-      <button class="tool-btn" onclick="toggleBOM()" style="width:100%; margin-top:10px;">Cerrar</button>
+      <button class="top-btn" onclick="toggleBOM()" style="width:100%; margin-top:15px;">CERRAR</button>
     </div>
   </div>
-  <div id="toolbar">
-    <button class="tool-btn active" data-tool="line">✏️ Línea</button>
-    <button class="tool-btn" data-tool="elbow90">↱ Codo 90°</button>
-    <button class="tool-btn" data-tool="elbow45">⤴ Codo 45°</button>
-    <button class="tool-btn" data-tool="tee">├ Tee</button>
-    <button class="tool-btn" data-tool="cap">⏚ Casquete</button>
-    <button class="tool-btn" data-tool="red-conc">▽ Red.Conc</button>
-    <button class="tool-btn" data-tool="red-exc">⏛ Red.Exc</button>
-    <button class="tool-btn" data-tool="flange">║ Brida</button>
-    <button class="tool-btn" data-tool="pan">✋ Mover</button>
-  </div>
-  <script src="app.js"></script>
+
+  <script src="./app.js"></script>
 </body>
 </html>

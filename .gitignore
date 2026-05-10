@@ -1,40 +1,36 @@
 ```
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
+.env
+.env.local
+.env.*
+
+# Build directories
 dist/
 build/
 target/
-.gradle/
+*.log
+*.tmp
+*.swp
+*.swo
 
-# Compiled files
-*.pyc
-*.class
-*.o
-*.exe
-*.dll
-*.so
-*.a
-*.obj
-*.out
+# Editors
+.vscode/
+.idea/
 
 # System files
 .DS_Store
@@ -68,4 +64,59 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+
+# Python specific
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# Node.js specific
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java specific
+*.jar
+*.war
+*.ear
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# C/C++ specific
+*.i
+*.s
+*.su
+*.gcda
+*.gcno
+*.gcov
+*.stackdump
+
+# Go specific
+*.exe
+*.test
+*.prof
+
+# Ruby specific
+*.gem
+*.rbc
+.bundle/
+.rbenv-vars
+
+# Rust specific
+*.rlib
+target/
+
+# PHP specific
+*.phar
+.php_cs.cache
+
+# Temporary files
+*~
+\#*\#
+*.bak
+*.swp
+*.swo
 ```
